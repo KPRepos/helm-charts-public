@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argo-cd-connector-scripts
+  namespace: {{.Values.namespace}}
+data:
+  generate-kubeconfig.sh: |
+    #!/bin/sh
+    SA_NAME=$1
+    NAMESPACE=$2
+    KUBECONFIG_FILEPATH=$3
+
+    cd /tmp || { echo "Failed to change directory to /tmp"; exit 1; }
+
+    apk add --no-cache bash curl
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    mv kubectl /usr/local/bin/
+    curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.0/argocd-linux-amd64
+    chmod +x /usr/local/bin/argocd
+
+    SERVICE_ACCOUNT_TOKEN_PATH="/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+    echo "Kubernetes Cluster API URL: $KUBERNETES_CLUSTER_API_URL"
+
+    SERVICE_ACCOUNT_DIR="/var/run/secrets/kubernetes.io/serviceaccount"
+    KUBERNETES_SERVICE_SCHEME=$(case $KUBERNETES_SERVICE_PORT in 80|8080|8081) echo "http";; *) echo "https"; esac)
+    APISERVER=https://kubernetes.default.svc
+    KUBERNETES_CLUSTER_CA_FILE="$SERVICE_ACCOUNT_DIR"/ca.crt
+    KUBERNETES_NAMESPACE=$(cat "$SERVICE_ACCOUNT_DIR"/namespace)
+    KUBERNETES_USER_TOKEN=$(cat "$SERVICE_ACCOUNT_DIR"/token)
+    KUBERNETES_SERVER_URL=$(curl --cacert ${KUBERNETES_CLUSTER_CA_FILE} --header "Authorization: Bearer ${KUBERNETES_USER_TOKEN}" -X GET ${APISERVER}/api | jq -r '.serverAddressByClientCIDRs[0].serverAddress')
+
+    mkdir -p "$HOME"/.kube
+    cat << EOF > "$HOME"/.kube/config
+    apiVersion: v1
+    kind: Config
+    preferences: {}
+    current-context: $KUBERNETES_CLUSTER_NAME
+    clusters:
+    - cluster:
+        server: $KUBERNETES_CLUSTER_API_URL
+        certificate-authority: $KUBERNETES_CLUSTER_CA_FILE
+      name: $KUBERNETES_CLUSTER_NAME
+    users:
+    - name: podServiceAccount
+      user:
+        token: $KUBERNETES_USER_TOKEN
+    contexts:
+    - context:
+        cluster: $KUBERNETES_CLUSTER_NAME
+        user: podServiceAccount
+        namespace: $KUBERNETES_NAMESPACE
+      name: $KUBERNETES_CLUSTER_NAME
+    EOF
+
+    ARGOCD_COMMAND="argocd cluster add $KUBERNETES_CLUSTER_NAME --name $KUBERNETES_CLUSTER_NAME --server $ARGOCD_SERVER --auth-token $ARGOCD_SERVER_TOKEN --insecure --kubeconfig $KUBECONFIG_FILEPATH -y"
+    argocd cluster add $KUBERNETES_CLUSTER_NAME --name $KUBERNETES_CLUSTER_NAME --server $ARGOCD_SERVER --auth-token $ARGOCD_SERVER_TOKEN --insecure --kubeconfig $KUBECONFIG_FILEPATH -y
+    exit 0

@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cleanup-job
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      serviceAccountName: argocd-manager
+      containers:
+        - name: cleanup
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              kubectl delete pod -n {{.Values.namespace}} --field-selector=status.phase==Succeeded;
+              kubectl delete serviceaccount {{.Values.serviceAccountName}} -n {{.Values.namespace}};
+              kubectl delete clusterrole {{.Values.clusterRoleName}};
+              kubectl delete clusterrolebinding {{.Values.clusterRoleBindingName}};
+              kubectl delete ns {{.Values.namespace}};
+              kubectl get pod -n temp-ns
+      restartPolicy: OnFailure
+  activeDeadlineSeconds: 150

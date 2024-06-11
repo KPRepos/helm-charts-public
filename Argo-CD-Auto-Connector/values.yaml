@@ -1,0 +1,12 @@
+serviceAccountName: argo-cd-connector-sa
+clusterRoleName: argo-cd-connector-cr
+clusterRoleBindingName: argo-cd-connector-crb
+namespace: temp-ns
+initContainerName: argo-cd-init
+initContainerImage: alpine
+kubeconfigFilePath: /root/.kube/config
+kubernetesclusterAPIURL: "https://10.0.0.230:6443"
+ClusterName: "homelab-k8s"
+argocd_server: "10.0.0.239:31302"
+argocd_auth_token: "eyJhbGciOiJIU....."
+initContainerCommand: ["sh", "/scripts/generate-kubeconfig.sh", "argo-cd-connector-sa-1", "temp-ns", "/root/.kube/config"]

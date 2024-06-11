@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{.Values.initContainerName}}
+  namespace: {{.Values.namespace}}
+spec:
+  serviceAccountName: {{.Values.serviceAccountName}}
+  containers:
+    - name: dummy-container
+      image: busybox
+      command: ["sh", "-c", "sleep 125"]
+  initContainers:
+    - name: init
+      image: {{.Values.initContainerImage}}
+      #   command: ["sh", "-c", "sh /scripts/generate-kubeconfig.sh"]
+      command: ["/bin/sh", "/scripts/generate-kubeconfig.sh"]
+      volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+      env:
+        - name: KUBERNETES_CLUSTER_API_URL
+          value: "{{ .Values.kubernetesclusterAPIURL }}"
+        - name: ARGOCD_SERVER
+          value: "{{ .Values.argocd_server }}"
+        - name: KUBERNETES_CLUSTER_NAME
+          value: "{{ .Values.ClusterName }}"
+        - name: ARGOCD_SERVER_TOKEN
+          value: "{{ .Values.argocd_auth_token }}"
+  volumes:
+    - name: scripts
+      configMap:
+        name: argo-cd-connector-scripts
+  restartPolicy: Never
