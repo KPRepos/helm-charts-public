@@ -3,7 +3,7 @@ entries:
   argo-cd-auto-connector:
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2024-06-10T19:08:21.160912-07:00"
+    created: "2024-06-10T19:13:41.744348-07:00"
     description: A Helm chart to create a kubeconfig with cluster-admin access for
       an init container.
     digest: 1e584384dff930aea0b86def0fe46f58048dae0ff3fbd934152a4a196bd03d59
@@ -11,4 +11,4 @@ entries:
     urls:
     - https://kprepos.github.io/helm-charts-public/argo-cd-auto-connector-0.1.0.tgz
     version: 0.1.0
-generated: "2024-06-10T19:08:21.160161-07:00"
+generated: "2024-06-10T19:13:41.743473-07:00"
